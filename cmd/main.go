@@ -52,7 +52,7 @@ func onReady() {
 	go func() {
 		err := configdir.MakePath(configPath)
 		if err != nil {
-			panic(err)
+			log.Errorf("could not create config directory: %v", err)
 		}
 		var settings AppSettings
 		settings = AppSettings{"geometric"}
@@ -60,21 +60,24 @@ func onReady() {
 		if _, err = os.Stat(configFile); os.IsNotExist(err) {
 			fh, err := os.Create(configFile)
 			if err != nil {
-				panic(err)
+				log.Errorf("could not create config file: %v", err)
+			} else {
+				defer fh.Close()
+				encoder := json.NewEncoder(fh)
+				encoder.Encode(settings)
 			}
-			defer fh.Close()
-			encoder := json.NewEncoder(fh)
-			encoder.Encode(settings)
-
 		} else {
 			fh, err := os.Open(configFile)
 			if err != nil {
-				panic(err)
+				log.Errorf("could not open config file: %v", err)
+			} else {
+				defer fh.Close()
+				decoder := json.NewDecoder(fh)
+				if err := decoder.Decode(&settings); err != nil {
+					log.Errorf("could not decode config file: %v", err)
+					settings = AppSettings{"geometric"}
+				}
 			}
-			defer fh.Close()
-
-			decoder := json.NewDecoder(fh)
-			decoder.Decode(&settings)
 		}
 		setIcon(settings.Icon, "")
 
