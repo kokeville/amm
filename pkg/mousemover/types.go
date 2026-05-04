@@ -8,9 +8,11 @@ import (
 
 //MouseMover is the main struct for the app
 type MouseMover struct {
-	quit    chan struct{}
-	logFile *os.File
-	state   *state
+	quit      chan struct{}
+	timerQuit chan struct{}
+	logFile   *os.File
+	state     *state
+	OnStop    func()
 }
 
 //state manages the internal working of the app

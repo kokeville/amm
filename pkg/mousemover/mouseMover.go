@@ -22,6 +22,14 @@ func (m *MouseMover) Start() {
 	if m.state.isRunning() {
 		return
 	}
+	// Cancel any pending timer before starting fresh
+	if m.timerQuit != nil {
+		select {
+		case m.timerQuit <- struct{}{}:
+		default:
+		}
+		m.timerQuit = nil
+	}
 	m.state = &state{}
 	m.quit = make(chan struct{})
 
@@ -104,6 +112,9 @@ func (m *MouseMover) run(heartbeatCh chan *tracker.Heartbeat, activityTracker *t
 				logger.Infof("stopping mouse mover")
 				state.updateRunningStatus(false)
 				activityTracker.Quit()
+				if m.OnStop != nil {
+					go m.OnStop()
+				}
 				return
 			}
 		}
@@ -119,9 +130,45 @@ func (m *MouseMover) Quit() {
 		default:
 		}
 	}
+	// Cancel any pending auto-stop timer
+	if m.timerQuit != nil {
+		select {
+		case m.timerQuit <- struct{}{}:
+		default:
+		}
+		m.timerQuit = nil
+	}
 	if m.logFile != nil {
 		m.logFile.Close()
 	}
+}
+
+// StartWithDuration starts the app and automatically stops it after the given duration.
+func (m *MouseMover) StartWithDuration(duration time.Duration) {
+	m.Start()
+	tq := make(chan struct{}, 1)
+	m.timerQuit = tq
+	go func() {
+		timer := time.NewTimer(duration)
+		defer timer.Stop()
+		select {
+		case <-timer.C:
+			m.Quit()
+		case <-tq:
+			// Cancelled by manual quit or new start
+		}
+	}()
+}
+
+// StartUntil starts the app and automatically stops it at the given time.
+// Returns an error if stopTime is in the past.
+func (m *MouseMover) StartUntil(stopTime time.Time) error {
+	duration := time.Until(stopTime)
+	if duration <= 0 {
+		return fmt.Errorf("stop time %v is in the past", stopTime)
+	}
+	m.StartWithDuration(duration)
+	return nil
 }
 
 // GetInstance gets the singleton instance for mouse mover app
