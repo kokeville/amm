@@ -55,7 +55,7 @@ func onReady() {
 			panic(err)
 		}
 		var settings AppSettings
-		settings = AppSettings{"mouse"}
+		settings = AppSettings{"geometric"}
 
 		if _, err = os.Stat(configFile); os.IsNotExist(err) {
 			fh, err := os.Create(configFile)
