@@ -41,7 +41,7 @@ func (m *MouseMover) Start() {
 func (m *MouseMover) run(heartbeatCh chan *tracker.Heartbeat, activityTracker *tracker.Instance) {
 	go func() {
 		state := m.state
-		if state != nil && state.isRunning() {
+		if state == nil || state.isRunning() {
 			return
 		}
 		state.updateRunningStatus(true)
@@ -51,6 +51,9 @@ func (m *MouseMover) run(heartbeatCh chan *tracker.Heartbeat, activityTracker *t
 		for {
 			select {
 			case heartbeat := <-heartbeatCh:
+				if heartbeat == nil {
+					continue
+				}
 				if !heartbeat.WasAnyActivity {
 					if state.isSystemSleeping() {
 						logger.Infof("system sleeping")
@@ -110,8 +113,11 @@ func (m *MouseMover) run(heartbeatCh chan *tracker.Heartbeat, activityTracker *t
 // Quit the app
 func (m *MouseMover) Quit() {
 	//making it idempotent
-	if m != nil && m.state.isRunning() {
-		m.quit <- struct{}{}
+	if m != nil && m.state != nil && m.state.isRunning() {
+		select {
+		case m.quit <- struct{}{}:
+		default:
+		}
 	}
 	if m.logFile != nil {
 		m.logFile.Close()
