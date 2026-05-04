@@ -1,0 +1,47 @@
+name: Build macOS App
+
+on:
+  push:
+    branches: [ "master", "claude/add-timer-durations-HWDt6" ]
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.21"
+
+      - name: Build universal binary (arm64 + amd64)
+        run: |
+          CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o ./amm-arm64 cmd/main.go
+          CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o ./amm-amd64 cmd/main.go
+          lipo -create -output ./amm-universal ./amm-arm64 ./amm-amd64
+
+      - name: Package .app bundle
+        run: |
+          mkdir -p ./bin/amm.app/Contents/Resources
+          mkdir -p ./bin/amm.app/Contents/MacOS
+          cp ./appInfo/Info.plist ./bin/amm.app/Contents/Info.plist
+          cp ./appInfo/icon.icns ./bin/amm.app/Contents/Resources/icon.icns
+          cp ./amm-universal ./bin/amm.app/Contents/MacOS/amm
+          chmod +x ./bin/amm.app/Contents/MacOS/amm
+
+      - name: Zip .app
+        run: |
+          cd ./bin
+          zip -r amm.app.zip amm.app
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: amm-macos
+          path: ./bin/amm.app.zip
+          retention-days: 30
