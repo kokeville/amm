@@ -32,6 +32,7 @@ func (m *MouseMover) Start() {
 	}
 	m.state = &state{}
 	m.quit = make(chan struct{})
+	m.done = make(chan struct{})
 
 	heartbeatInterval := 60 //value always in seconds
 	workerInterval := 10
@@ -113,8 +114,9 @@ func (m *MouseMover) run(heartbeatCh chan *tracker.Heartbeat, activityTracker *t
 				state.updateRunningStatus(false)
 				activityTracker.Quit()
 				if m.OnStop != nil {
-					go m.OnStop()
+					m.OnStop()
 				}
+				close(m.done)
 				return
 			}
 		}
@@ -125,9 +127,13 @@ func (m *MouseMover) run(heartbeatCh chan *tracker.Heartbeat, activityTracker *t
 func (m *MouseMover) Quit() {
 	//making it idempotent
 	if m != nil && m.state != nil && m.state.isRunning() {
+		done := m.done
 		select {
 		case m.quit <- struct{}{}:
 		default:
+		}
+		if done != nil {
+			<-done // wait for the run goroutine to finish and call OnStop
 		}
 	}
 	// Cancel any pending auto-stop timer

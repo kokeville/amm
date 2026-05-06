@@ -9,6 +9,7 @@ import (
 //MouseMover is the main struct for the app
 type MouseMover struct {
 	quit      chan struct{}
+	done      chan struct{}
 	timerQuit chan struct{}
 	logFile   *os.File
 	state     *state
