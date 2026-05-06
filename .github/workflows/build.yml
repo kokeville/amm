@@ -26,7 +26,7 @@ jobs:
           mkdir -p ./bin/amm.app/Contents/MacOS
           cp ./appInfo/Info.plist ./bin/amm.app/Contents/Info.plist
           cp ./appInfo/icon.icns ./bin/amm.app/Contents/Resources/icon.icns
-          go build -o ./bin/amm.app/Contents/MacOS/amm cmd/main.go
+          go build -o ./bin/amm.app/Contents/MacOS/amm ./cmd/
           chmod +x ./bin/amm.app/Contents/MacOS/amm
           cd ./bin && zip -r amm.app.zip amm.app
 
