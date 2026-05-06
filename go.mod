@@ -1,4 +1,4 @@
-module github.com/prashantgupta/automatic-mouse-mover
+module github.com/prashantgupta24/automatic-mouse-mover
 
 go 1.25.0
 
