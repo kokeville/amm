@@ -9,17 +9,7 @@ on:
 
 jobs:
   build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: macos-13
-            arch: amd64
-          - runner: macos-latest
-            arch: arm64
-
-    runs-on: ${{ matrix.runner }}
-    name: Build (${{ matrix.arch }})
+    runs-on: macos-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -30,42 +20,17 @@ jobs:
           go-version-file: "go.mod"
           check-latest: true
 
-      - name: Build binary
+      - name: Build and package .app
         run: |
-          CGO_ENABLED=1 GOOS=darwin GOARCH=${{ matrix.arch }} go build -o ./amm-${{ matrix.arch }} cmd/main.go
-
-      - name: Upload binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: amm-${{ matrix.arch }}
-          path: ./amm-${{ matrix.arch }}
-          retention-days: 1
-
-  package:
-    needs: build
-    runs-on: macos-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download binaries
-        uses: actions/download-artifact@v4
-        with:
-          pattern: amm-*
-          merge-multiple: true
-
-      - name: Create universal binary and package .app
-        run: |
-          lipo -create -output ./amm-universal ./amm-amd64 ./amm-arm64
           mkdir -p ./bin/amm.app/Contents/Resources
           mkdir -p ./bin/amm.app/Contents/MacOS
           cp ./appInfo/Info.plist ./bin/amm.app/Contents/Info.plist
           cp ./appInfo/icon.icns ./bin/amm.app/Contents/Resources/icon.icns
-          cp ./amm-universal ./bin/amm.app/Contents/MacOS/amm
+          go build -o ./bin/amm.app/Contents/MacOS/amm cmd/main.go
           chmod +x ./bin/amm.app/Contents/MacOS/amm
           cd ./bin && zip -r amm.app.zip amm.app
 
-      - name: Upload .app artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: amm-macos
