@@ -9,7 +9,16 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - runner: macos-13
+            arch: amd64
+          - runner: macos-latest
+            arch: arm64
+
+    runs-on: ${{ matrix.runner }}
+    name: Build (${{ matrix.arch }})
 
     steps:
       - uses: actions/checkout@v4
@@ -17,29 +26,44 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.21"
+          go-version: "1.25"
 
-      - name: Build universal binary (arm64 + amd64)
+      - name: Build binary
         run: |
-          CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o ./amm-arm64 cmd/main.go
-          CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o ./amm-amd64 cmd/main.go
-          lipo -create -output ./amm-universal ./amm-arm64 ./amm-amd64
+          CGO_ENABLED=1 GOOS=darwin GOARCH=${{ matrix.arch }} go build -o ./amm-${{ matrix.arch }} cmd/main.go
 
-      - name: Package .app bundle
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: amm-${{ matrix.arch }}
+          path: ./amm-${{ matrix.arch }}
+          retention-days: 1
+
+  package:
+    needs: build
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download binaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: amm-*
+          merge-multiple: true
+
+      - name: Create universal binary and package .app
         run: |
+          lipo -create -output ./amm-universal ./amm-amd64 ./amm-arm64
           mkdir -p ./bin/amm.app/Contents/Resources
           mkdir -p ./bin/amm.app/Contents/MacOS
           cp ./appInfo/Info.plist ./bin/amm.app/Contents/Info.plist
           cp ./appInfo/icon.icns ./bin/amm.app/Contents/Resources/icon.icns
           cp ./amm-universal ./bin/amm.app/Contents/MacOS/amm
           chmod +x ./bin/amm.app/Contents/MacOS/amm
+          cd ./bin && zip -r amm.app.zip amm.app
 
-      - name: Zip .app
-        run: |
-          cd ./bin
-          zip -r amm.app.zip amm.app
-
-      - name: Upload artifact
+      - name: Upload .app artifact
         uses: actions/upload-artifact@v4
         with:
           name: amm-macos
