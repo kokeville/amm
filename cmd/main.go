@@ -127,21 +127,13 @@ func onReady() {
 		}
 
 		mouseMover.OnStop = stopUI
-		if mousemover.IsAccessibilityGranted() {
-			mouseMover.Start()
-			startUI()
-		} else {
-			alertNoAccessibility()
-		}
+		mouseMover.Start()
+		startUI()
 
 		for {
 			select {
 			case <-ammStart.ClickedCh:
 				log.Infof("starting the app")
-				if !mousemover.IsAccessibilityGranted() {
-					alertNoAccessibility()
-					break
-				}
 				mouseMover.Start()
 				startUI()
 
@@ -150,50 +142,26 @@ func onReady() {
 				mouseMover.Quit() // blocks until fully stopped; OnStop(stopUI) called inside
 
 			case <-timer30m.ClickedCh:
-				if !mousemover.IsAccessibilityGranted() {
-					alertNoAccessibility()
-					break
-				}
 				log.Infof("starting the app for 30 minutes")
 				mouseMover.StartWithDuration(30 * time.Minute)
 				startUI()
 			case <-timer1h.ClickedCh:
-				if !mousemover.IsAccessibilityGranted() {
-					alertNoAccessibility()
-					break
-				}
 				log.Infof("starting the app for 1 hour")
 				mouseMover.StartWithDuration(1 * time.Hour)
 				startUI()
 			case <-timer2h.ClickedCh:
-				if !mousemover.IsAccessibilityGranted() {
-					alertNoAccessibility()
-					break
-				}
 				log.Infof("starting the app for 2 hours")
 				mouseMover.StartWithDuration(2 * time.Hour)
 				startUI()
 			case <-timer4h.ClickedCh:
-				if !mousemover.IsAccessibilityGranted() {
-					alertNoAccessibility()
-					break
-				}
 				log.Infof("starting the app for 4 hours")
 				mouseMover.StartWithDuration(4 * time.Hour)
 				startUI()
 			case <-timer8h.ClickedCh:
-				if !mousemover.IsAccessibilityGranted() {
-					alertNoAccessibility()
-					break
-				}
 				log.Infof("starting the app for 8 hours")
 				mouseMover.StartWithDuration(8 * time.Hour)
 				startUI()
 			case <-timerCustom.ClickedCh:
-				if !mousemover.IsAccessibilityGranted() {
-					alertNoAccessibility()
-					break
-				}
 				log.Infof("requesting custom stop time")
 				stopTime, err := promptCustomStopTime()
 				if err != nil {
@@ -228,11 +196,6 @@ func onReady() {
 		}
 
 	}()
-}
-
-func alertNoAccessibility() {
-	robotgo.Alert("Accessibility Permission Required",
-		"Please go to System Settings → Privacy & Security → Accessibility, enable amm, then restart the app.", "OK", "")
 }
 
 func onExit() {
