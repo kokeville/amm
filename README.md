@@ -63,9 +63,17 @@ You just click on `Start`, and AMM will take care of moving your mouse whenever 
 
 1. Download the latest `amm.app.zip` from the [releases](https://github.com/prashantgupta24/automatic-mouse-mover/releases) page, unzip it, and copy the .app to your `Applications` folder like any other application.
 
-1. Since the application is not notarized, you will need to right click on the .app and choose Open.
+1. Since the application is not notarized, macOS may block it. On **macOS Ventura and later**, you may see a dialog saying _"amm is damaged and can't be opened."_ This is a Gatekeeper false positive caused by the quarantine attribute macOS sets on downloaded files. To fix it, open **Terminal** and run:
 
-1. You will see a scary message that warns you about all the bad things that the app can do to your computer. If you are paranoid (fair enough, you don't really know me that well) then you can skip to the section which builds the app from source. That way you can see what exactly the app does (You can check that the application makes no connections to the internet whatsoever).
+   ```
+   xattr -cr /Applications/amm.app
+   ```
+
+   Then try opening the app again.
+
+1. On older macOS versions you may instead see a warning about an unidentified developer — right-click the .app and choose **Open** to bypass it.
+
+1. If you are paranoid (fair enough, you don't really know me that well) then you can skip to the section which builds the app from source. That way you can see what exactly the app does (You can check that the application makes no connections to the internet whatsoever).
 
 1. In case you do trust me, once you click on `Open`, you might encounter an initial `Access request` which I've discussed in the next section.
 
