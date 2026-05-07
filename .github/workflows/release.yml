@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build app bundle
+        run: |
+          mkdir -p ./bin/amm.app/Contents/Resources
+          mkdir -p ./bin/amm.app/Contents/MacOS
+          cp ./appInfo/*.plist ./bin/amm.app/Contents/Info.plist
+          cp ./appInfo/*.icns ./bin/amm.app/Contents/Resources/icon.icns
+          go build -o ./bin/amm.app/Contents/MacOS/amm cmd/main.go
+          # Strip quarantine attribute so users don't see the "damaged" dialog
+          xattr -cr ./bin/amm.app
+
+      - name: Zip app bundle
+        run: |
+          cd ./bin
+          zip -r amm.app.zip amm.app
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./bin/amm.app.zip
+          generate_release_notes: true
