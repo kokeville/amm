@@ -31,7 +31,7 @@ func (m *MouseMover) Start() {
 		m.timerQuit = nil
 	}
 	m.state = &state{}
-	m.quit = make(chan struct{})
+	m.quit = make(chan struct{}, 1) // buffered so Quit() never deadlocks during the nested mouse-move select
 	m.done = make(chan struct{})
 
 	heartbeatInterval := 60 //value always in seconds

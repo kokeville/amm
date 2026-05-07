@@ -119,23 +119,42 @@ func onReady() {
 			ammStart.Disable()
 			ammStop.Enable()
 			ammTimer.Disable()
+			timer30m.Disable()
+			timer1h.Disable()
+			timer2h.Disable()
+			timer4h.Disable()
+			timer8h.Disable()
+			timerCustom.Disable()
 		}
 		stopUI := func() {
 			ammStart.Enable()
 			ammStop.Disable()
 			ammTimer.Enable()
+			timer30m.Enable()
+			timer1h.Enable()
+			timer2h.Enable()
+			timer4h.Enable()
+			timer8h.Enable()
+			timerCustom.Enable()
+		}
+
+		tryStart := func(start func()) {
+			if !mousemover.IsAccessibilityGranted() {
+				go openAccessibilitySettings()
+				return
+			}
+			start()
+			startUI()
 		}
 
 		mouseMover.OnStop = stopUI
-		mouseMover.Start()
-		startUI()
+		tryStart(mouseMover.Start)
 
 		for {
 			select {
 			case <-ammStart.ClickedCh:
 				log.Infof("starting the app")
-				mouseMover.Start()
-				startUI()
+				tryStart(mouseMover.Start)
 
 			case <-ammStop.ClickedCh:
 				log.Infof("stopping the app")
@@ -143,26 +162,25 @@ func onReady() {
 
 			case <-timer30m.ClickedCh:
 				log.Infof("starting the app for 30 minutes")
-				mouseMover.StartWithDuration(30 * time.Minute)
-				startUI()
+				tryStart(func() { mouseMover.StartWithDuration(30 * time.Minute) })
 			case <-timer1h.ClickedCh:
 				log.Infof("starting the app for 1 hour")
-				mouseMover.StartWithDuration(1 * time.Hour)
-				startUI()
+				tryStart(func() { mouseMover.StartWithDuration(1 * time.Hour) })
 			case <-timer2h.ClickedCh:
 				log.Infof("starting the app for 2 hours")
-				mouseMover.StartWithDuration(2 * time.Hour)
-				startUI()
+				tryStart(func() { mouseMover.StartWithDuration(2 * time.Hour) })
 			case <-timer4h.ClickedCh:
 				log.Infof("starting the app for 4 hours")
-				mouseMover.StartWithDuration(4 * time.Hour)
-				startUI()
+				tryStart(func() { mouseMover.StartWithDuration(4 * time.Hour) })
 			case <-timer8h.ClickedCh:
 				log.Infof("starting the app for 8 hours")
-				mouseMover.StartWithDuration(8 * time.Hour)
-				startUI()
+				tryStart(func() { mouseMover.StartWithDuration(8 * time.Hour) })
 			case <-timerCustom.ClickedCh:
 				log.Infof("requesting custom stop time")
+				if !mousemover.IsAccessibilityGranted() {
+					go openAccessibilitySettings()
+					break
+				}
 				stopTime, err := promptCustomStopTime()
 				if err != nil {
 					log.Infof("custom time cancelled or invalid: %v", err)
@@ -196,6 +214,16 @@ func onReady() {
 		}
 
 	}()
+}
+
+// openAccessibilitySettings opens System Settings to the Accessibility pane and shows
+// a one-time, non-blocking alert. Called in a goroutine so it never blocks the menu loop.
+// If AMM already appears in the list (old binary), the user must remove it and re-add
+// this version — after doing so, clicking Start works immediately without restarting.
+func openAccessibilitySettings() {
+	exec.Command("open", "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility").Run()
+	robotgo.Alert("Accessibility Access Required",
+		"AMM needs accessibility access to move the mouse.\n\nIn System Settings → Privacy & Security → Accessibility:\n• If AMM is already listed, remove it (–) and re-add it (+).\n• Toggle the switch ON.\n\nThen click Start — no restart needed.", "OK", "")
 }
 
 func onExit() {
